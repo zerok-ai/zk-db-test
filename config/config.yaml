@@ -1,0 +1,22 @@
+redis:
+  host: 127.0.0.1
+  password: "go4S7K9bjC"
+  port: 6379
+  dbs:
+    filtered_traces: 1
+    scenarios: 2
+    traces: 3
+    executor_attr: 4
+    pod_details: 7
+    error_details: 8
+  readTimeout: 20
+traces:
+  syncDurationMS: 1000
+  syncBatchSize: 30
+  ttl: 1800
+logs:
+  color: true
+  level: DEBUG
+server:
+  host: localhost
+  port: 80

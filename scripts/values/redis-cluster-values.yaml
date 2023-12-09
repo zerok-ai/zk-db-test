@@ -1,0 +1,12 @@
+configuration: |-
+  appendonly no
+  save ""
+  maxmemory 10000mb
+  maxmemory-policy volatile-lru
+resources:
+  limits:
+    cpu: 2000m
+    memory: 12Gi
+  requests:
+    cpu: 2000m
+    memory: 12Gi

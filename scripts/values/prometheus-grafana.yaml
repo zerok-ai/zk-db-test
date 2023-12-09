@@ -1,0 +1,38 @@
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 5s
+    evaluationInterval: 5s
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    enableRemoteWriteReceiver: true
+    nodeSelector: {
+      role: system
+    }
+
+alertmanager:
+  alertmanagerSpec: 
+    nodeSelector: {
+      role: system
+    }
+
+grafana:
+  sidecar:
+    datasources:
+      defaultDatasourceEnabled: true
+    dashboards:
+      searchNamespace: ALL
+      provider:
+        allowUiUpdates: true
+
+prometheusOperator:
+  alertmanagerSpec: 
+    nodeSelector: {
+      role: system
+    }
+  admissionWebhooks: 
+    patch:
+      nodeSelector: {
+        role: system
+      }

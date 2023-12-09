@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zk-redis-test
+  labels:
+    app: zk-redis-test
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: zk-redis-test
+  template:
+    metadata:
+      labels:
+        app: zk-redis-test
+    spec:
+      serviceAccountName: redis-test-sa
+      containers:
+      - image: "us-west1-docker.pkg.dev/zerok-dev/zk-client/zk-redis-test:latest"
+        imagePullPolicy: Always
+        name: zk-redis-test
+        ports:
+          - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 80
+          successThreshold: 3
+        resources:
+          limits:
+            cpu: 256m
+            memory: 128Mi
+          requests:
+            cpu: 128m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /zk/config
+          name: config
+        env: # Setting Enviornmental Variables
+          - name: ZK_REDIS_PASSWORD # Setting Redis password from Secret
+            valueFrom:
+              secretKeyRef:
+                name: redis
+                key: redis-password
+          - name: ZK_REDIS_HOST # Setting Redis password from Secret
+            valueFrom:
+              configMapKeyRef:
+                name: zk-redis-config
+                key: redisHost
+      volumes:
+      - configMap:
+          name: zk-redis-test
+        name: config
