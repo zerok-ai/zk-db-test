@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	logger "github.com/zerok-ai/zk-utils-go/logs"
+	"github.com/zerok-ai/zk-utils-go/storage/redis/clientDBNames"
 	"math/rand"
 	"redis-test/config"
 	"redis-test/model"
@@ -13,20 +14,34 @@ import (
 var traceLogTag = "TraceHandler"
 var delimiter = "__"
 
+type DBHandler interface {
+	PutTraceData(traceId string, spanId string, spanDetails model.OTelSpanDetails) error
+	SyncPipeline()
+}
+
 type TraceHandler struct {
-	traceRedisHandler *TraceRedisHandler
-	traceStoreMutex   sync.Mutex
-	traceStore        sync.Map
+	traceRedisHandler  DBHandler
+	traceBadgerHandler DBHandler
+
+	traceStoreMutex sync.Mutex
+	traceStore      sync.Map
 }
 
 func NewTraceHandler(config *config.AppConfigs) (*TraceHandler, error) {
-	traceRedisHandler, err := NewTracesRedisHandler(config)
+
+	redisHandler, err := NewRedisHandler(config, clientDBNames.TraceDBName)
 	if err != nil {
 		logger.Error(traceLogTag, "Error while creating redis handler:", err)
 		return nil, err
 	}
 
-	handler := TraceHandler{traceRedisHandler: traceRedisHandler}
+	badgerHandler, err := NewBadgerHandler(config, clientDBNames.TraceDBName)
+	if err != nil {
+		logger.Error(traceLogTag, "Error while creating badger handler:", err)
+		return nil, err
+	}
+
+	handler := TraceHandler{traceRedisHandler: redisHandler, traceBadgerHandler: badgerHandler}
 	return &handler, nil
 }
 

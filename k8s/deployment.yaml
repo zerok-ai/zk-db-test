@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zk-redis-test
+  name: zk-db-test
   labels:
-    app: zk-redis-test
+    app: zk-db-test
 spec:
-  replicas: 4
+  replicas: 20
   selector:
     matchLabels:
-      app: zk-redis-test
+      app: zk-db-test
   template:
     metadata:
       labels:
-        app: zk-redis-test
+        app: zk-db-test
     spec:
       serviceAccountName: redis-test-sa
       containers:
-      - image: "us-west1-docker.pkg.dev/zerok-dev/zk-client/zk-redis-test:latest"
+      - image: "us-west1-docker.pkg.dev/zerok-dev/zk-client/zk-db-test:latest"
         imagePullPolicy: Always
-        name: zk-redis-test
+        name: zk-db-test
         ports:
           - containerPort: 80
         readinessProbe:
@@ -49,5 +49,5 @@ spec:
                 key: redisHost
       volumes:
       - configMap:
-          name: zk-redis-test
+          name: zk-db-test
         name: config

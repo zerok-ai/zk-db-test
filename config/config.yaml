@@ -10,6 +10,8 @@ redis:
     pod_details: 7
     error_details: 8
   readTimeout: 20
+badger:
+  filePath: /zk/badger
 traces:
   syncDurationMS: 1000
   syncBatchSize: 30

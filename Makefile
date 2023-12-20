@@ -1,5 +1,5 @@
-NAME = zk-redis-test
-IMAGE_NAME = zk-redis-test
+NAME = zk-db-test
+IMAGE_NAME = zk-db-test
 IMAGE_VERSION = latest
 
 LOCATION ?= us-west1
@@ -20,13 +20,13 @@ run: build
 	go run cmd/main.go -c ./config/config.yaml
 
 docker-build: build
-	# generate a random hash of 3 characters
+	@# generate a random hash of 3 characters
 	$(eval BUILD_NUMBER := $(shell head -c 3 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | fold -w 3 | head -n 1))
 
-	echo "BUILD_NUMBER=$(BUILD_NUMBER)"
-
-	# run docker build
+	@# run docker build
 	docker build $(DockerFile) --build-arg BUILD_NUMBER=$(BUILD_NUMBER) -t $(IMAGE_PREFIX)$(IMAGE_NAME)$(IMAGE_NAME_SUFFIX):$(IMAGE_VERSION) .
+
+	@echo "********************** BUILD_NUMBER=$(BUILD_NUMBER) **********************"
 
 docker-push:
 	docker push $(IMAGE_PREFIX)$(IMAGE_NAME)$(IMAGE_NAME_SUFFIX):$(IMAGE_VERSION)

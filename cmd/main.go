@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/kataras/iris/v12"
+	"github.com/prometheus/client_golang/prometheus"
 	zkConfig "github.com/zerok-ai/zk-utils-go/config"
 	zkHttpConfig "github.com/zerok-ai/zk-utils-go/http/config"
 	zkLogger "github.com/zerok-ai/zk-utils-go/logs"
@@ -15,17 +16,31 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var LogTag = "main"
+var (
+	LogTag = "main"
+
+	RedisWriteRequestCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "zk_redis_writes_request",
+			Help: "Total number of objects to be written to redis",
+		},
+		[]string{"method"},
+	)
+)
 
 const (
 	redisLoadTestApi        = "/gen-redis-load"
 	redisLoadTestApiAllPods = "/gen-redis-load-all"
 
 	namespace     = "zk-client"
-	serviceName   = "zk-redis-test"
-	labelSelector = "app=zk-redis-test"
+	serviceName   = "zk-db-test"
+	labelSelector = "app=zk-db-test"
 	port          = 80
 )
+
+func init() {
+	prometheus.MustRegister(RedisWriteRequestCounter)
+}
 
 func main() {
 	// read configuration from the file and environment variables
@@ -108,6 +123,8 @@ func configureRedisLoadGeneratorAPI(app *iris.Application, redisLoadGenerator *l
 			traceCount = 2
 		}
 
+		RedisWriteRequestCounter.WithLabelValues("redis-writes").Add(float64(traceCount))
+
 		go redisLoadGenerator.GenerateLoad(traceCount)
 
 		ctx.StatusCode(iris.StatusAccepted)
@@ -124,6 +141,9 @@ func configureRedisLoadGeneratorAPIForAllPods(app *iris.Application) {
 
 		// Scan all pods with the label
 		podDetails := k8s.GetPodNameAndIPs(namespace, labelSelector)
+		if len(podDetails) == 0 {
+			podDetails = append(podDetails, k8s.PodDetails{Name: "localhost", IP: "localhost"})
+		}
 		zkLogger.InfoF(LogTag, "podDetails = %v", podDetails)
 
 		traceCountPerPod, err := ctx.URLParamInt("traceCountPerPod")

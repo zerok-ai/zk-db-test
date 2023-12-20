@@ -17,9 +17,14 @@ type TraceConfig struct {
 	Ttl            int `yaml:"ttl"`
 }
 
+type BadgerConfig struct {
+	FilePath string `yaml:"filePath"`
+}
+
 // AppConfigs is an application configuration structure
 type AppConfigs struct {
 	Redis      storage.RedisConfig     `yaml:"redis"`
+	Badger     BadgerConfig            `yaml:"badger"`
 	Server     ServerConfig            `yaml:"server"`
 	Traces     TraceConfig             `yaml:"traces"`
 	LogsConfig zkLogsConfig.LogsConfig `yaml:"logs"`
