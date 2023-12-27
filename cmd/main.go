@@ -75,6 +75,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer badgerLoadGenerator.Close()
 
 	configurator := iris.WithConfiguration(iris.Configuration{
 		DisablePathCorrection: true,
