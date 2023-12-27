@@ -2,6 +2,7 @@ package load_generators
 
 import (
 	"github.com/google/uuid"
+	zkLogger "github.com/zerok-ai/zk-utils-go/logs"
 	"redis-test/handlers"
 )
 
@@ -20,7 +21,11 @@ type BadgerLoadGenerator struct {
 }
 
 func (badgerLoadGenerator BadgerLoadGenerator) Close() {
-	badgerLoadGenerator.traceHandler.CloseBadgerConnection()
+	err := badgerLoadGenerator.traceHandler.CloseBadgerConnection()
+	if err != nil {
+		zkLogger.Error(traceBadgerHandlerLogTag, "Error while closing badger connection ", err)
+		return
+	}
 }
 
 func NewBadgerLoadGenerator(cfg config.AppConfigs) (*BadgerLoadGenerator, error) {

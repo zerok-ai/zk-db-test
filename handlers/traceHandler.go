@@ -105,8 +105,8 @@ func (th *TraceHandler) createSpanDetails(parentSpanId string) model.OTelSpanDet
 	return spanDetail
 }
 
-func (th *TraceHandler) CloseBadgerConnection() {
-	th.traceBadgerHandler.CloseDbConnection()
+func (th *TraceHandler) CloseBadgerConnection() error {
+	return th.traceBadgerHandler.CloseDbConnection()
 }
 
 // Function to generate a random hexadecimal string of a given length
