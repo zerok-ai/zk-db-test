@@ -166,22 +166,22 @@ func (b *BadgerHandler) Close() error {
 	return b.db.Close()
 }
 
-func (h *BadgerHandler) HMSetBadgerPipeline(key string, value map[string]string, expiration time.Duration) error {
+func (b *BadgerHandler) HMSetBadgerPipeline(key string, value map[string]string, expiration time.Duration) error {
 	newValue, _ := json.Marshal(value)
 
-	if err := h.wb.SetEntry(badger.NewEntry([]byte(key), []byte(newValue)).
+	if err := b.wb.SetEntry(badger.NewEntry([]byte(key), []byte(newValue)).
 		WithTTL(expiration)); err != nil {
 		return err
 	}
-	h.count++
+	b.count++
 	return nil
 }
 
-func (h *BadgerHandler) SyncPipeline() {
-	syncDuration := time.Duration(h.syncInterval) * time.Second
-	count := h.count
-	if count > h.batchSize || (count > 0 && time.Since(h.startTime) >= syncDuration) {
-		err := h.wb.Flush()
+func (b *BadgerHandler) SyncPipeline() {
+	syncDuration := time.Duration(b.syncInterval) * time.Second
+	count := b.count
+	if count > b.batchSize || (count > 0 && time.Since(b.startTime) >= syncDuration) {
+		err := b.wb.Flush()
 		if err != nil {
 			zkLogger.Error(badgerHandlerLogTag, "Error while syncing data to Badger ", err)
 			return
@@ -192,13 +192,13 @@ func (h *BadgerHandler) SyncPipeline() {
 
 		zkLogger.Debug(badgerHandlerLogTag, "Pipeline synchronized. event sent. Batch size =", count)
 
-		h.count -= count
-		h.startTime = time.Now()
+		b.count -= count
+		b.startTime = time.Now()
 	}
 }
 
-func (h *BadgerHandler) CloseDbConnection() error {
-	err := h.db.Close()
+func (b *BadgerHandler) CloseDbConnection() error {
+	err := b.db.Close()
 	if err != nil {
 		return err
 	}
