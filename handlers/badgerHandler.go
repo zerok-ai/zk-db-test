@@ -196,3 +196,11 @@ func (h *BadgerHandler) SyncPipeline() {
 		h.startTime = time.Now()
 	}
 }
+
+func (h *BadgerHandler) CloseDbConnection() error {
+	err := h.db.Close()
+	if err != nil {
+		return err
+	}
+	return nil
+}

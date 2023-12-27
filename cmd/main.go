@@ -71,17 +71,22 @@ func main() {
 	}
 	defer redisLoadGenerator.Close()
 
+	badgerLoadGenerator, err := loadGenerators.NewBadgerLoadGenerator(cfg)
+	if err != nil {
+		panic(err)
+	}
+
 	configurator := iris.WithConfiguration(iris.Configuration{
 		DisablePathCorrection: true,
 		LogLevel:              cfg.LogsConfig.Level,
 	})
-	if err = newApp(cfg, redisLoadGenerator).Listen(":"+cfg.Server.Port, configurator); err != nil {
+	if err = newApp(cfg, redisLoadGenerator, badgerLoadGenerator).Listen(":"+cfg.Server.Port, configurator); err != nil {
 		panic(err)
 	}
 
 }
 
-func newApp(cfg config.AppConfigs, redisLoadGenerator *loadGenerators.RedisLoadGenerator) *iris.Application {
+func newApp(cfg config.AppConfigs, redisLoadGenerator *loadGenerators.RedisLoadGenerator, badgerLoadGenerator *loadGenerators.BadgerLoadGenerator) *iris.Application {
 	app := iris.Default()
 
 	crs := func(ctx iris.Context) {
@@ -114,6 +119,8 @@ func newApp(cfg config.AppConfigs, redisLoadGenerator *loadGenerators.RedisLoadG
 	configureHealthAPI(app)
 	configureRedisLoadGeneratorAPI(app, redisLoadGenerator)
 	configureRedisLoadGeneratorAPIForAllPods(app)
+	configureBadgerLoadGeneratorAPI(app, badgerLoadGenerator)
+	configureBadgerLoadGeneratorAPIForAllPods(app)
 
 	return app
 }

@@ -20,7 +20,7 @@ type BadgerLoadGenerator struct {
 }
 
 func (badgerLoadGenerator BadgerLoadGenerator) Close() {
-
+	badgerLoadGenerator.traceHandler.CloseBadgerConnection()
 }
 
 func NewBadgerLoadGenerator(cfg config.AppConfigs) (*BadgerLoadGenerator, error) {

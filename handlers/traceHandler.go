@@ -17,6 +17,7 @@ var delimiter = "__"
 type DBHandler interface {
 	PutTraceData(traceId string, spanId string, spanDetails model.OTelSpanDetails) error
 	SyncPipeline()
+	CloseDbConnection() error
 }
 
 type TraceHandler struct {
@@ -102,6 +103,10 @@ func (th *TraceHandler) createSpanDetails(parentSpanId string) model.OTelSpanDet
 	spanDetail := model.OTelSpanDetails{}
 	spanDetail.SetParentSpanId(parentSpanId)
 	return spanDetail
+}
+
+func (th *TraceHandler) CloseBadgerConnection() {
+	th.traceBadgerHandler.CloseDbConnection()
 }
 
 // Function to generate a random hexadecimal string of a given length

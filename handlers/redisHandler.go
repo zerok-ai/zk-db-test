@@ -247,3 +247,7 @@ func (h *RedisHandler) shutdown() {
 		return
 	}
 }
+
+func (h *RedisHandler) CloseDbConnection() error {
+	return h.RedisClient.Close()
+}
