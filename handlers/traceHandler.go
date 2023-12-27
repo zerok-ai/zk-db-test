@@ -71,6 +71,32 @@ func (th *TraceHandler) PushDataToRedis(runId string, traceCount, spanCountPerTr
 	th.traceRedisHandler.SyncPipeline()
 }
 
+func (th *TraceHandler) PushDataToBadger(runId string, traceCount, spanCountPerTrace int) {
+
+	for traceIndex := 0; traceIndex < traceCount; traceIndex++ {
+		traceIDStr := fmt.Sprintf("00-aaaa%s", generateRandomHex(28))
+
+		parentSpanId := "0000000000000000"
+		for spanIndex := 0; spanIndex < spanCountPerTrace; spanIndex++ {
+
+			spanDetails := th.createSpanDetails(parentSpanId)
+
+			// Generate a random span ID (16 characters)
+			spanID := generateRandomHex(16)
+
+			err := th.traceBadgerHandler.PutTraceData(traceIDStr, spanID, spanDetails)
+			if err != nil {
+				logger.Debug(traceLogTag, "Error while putting trace data to redis ", err)
+				return
+			}
+
+			parentSpanId = spanID
+		}
+	}
+
+	th.traceBadgerHandler.SyncPipeline()
+}
+
 // Populate Span common properties.
 func (th *TraceHandler) createSpanDetails(parentSpanId string) model.OTelSpanDetails {
 	spanDetail := model.OTelSpanDetails{}

@@ -26,11 +26,21 @@ var (
 		},
 		[]string{"method"},
 	)
+
+	BadgerWriteRequestCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "zk_badger_writes_request",
+			Help: "Total number of objects to be written to badger",
+		},
+		[]string{"method"},
+	)
 )
 
 const (
-	redisLoadTestApi        = "/gen-redis-load"
-	redisLoadTestApiAllPods = "/gen-redis-load-all"
+	redisLoadTestApi         = "/gen-redis-load"
+	badgerLoadTestApi        = "/gen-badger-load"
+	redisLoadTestApiAllPods  = "/gen-redis-load-all"
+	badgerLoadTestApiAllPods = "/gen-badger-load-all"
 
 	namespace     = "zk-client"
 	serviceName   = "zk-db-test"
@@ -136,6 +146,27 @@ func configureRedisLoadGeneratorAPI(app *iris.Application, redisLoadGenerator *l
 	}).Describe("redis load generator")
 }
 
+func configureBadgerLoadGeneratorAPI(app *iris.Application, badgerLoadGenerator *loadGenerators.BadgerLoadGenerator) {
+	app.Get(badgerLoadTestApi, func(ctx iris.Context) {
+
+		traceCount, err := ctx.URLParamInt("traceCount")
+		if traceCount == 0 || err != nil {
+			traceCount = 2
+		}
+
+		BadgerWriteRequestCounter.WithLabelValues("badger-writes").Add(float64(traceCount))
+
+		go badgerLoadGenerator.GenerateLoad(traceCount)
+
+		ctx.StatusCode(iris.StatusAccepted)
+		_, err = ctx.WriteString("accepted")
+		if err != nil {
+			zkLogger.ErrorF(LogTag, "Unable to write response %v", err)
+			return
+		}
+	}).Describe("badger load generator")
+}
+
 func configureRedisLoadGeneratorAPIForAllPods(app *iris.Application) {
 	app.Get(redisLoadTestApiAllPods, func(ctx iris.Context) {
 
@@ -183,4 +214,53 @@ func configureRedisLoadGeneratorAPIForAllPods(app *iris.Application) {
 		}
 
 	}).Describe("redis load generator")
+}
+
+func configureBadgerLoadGeneratorAPIForAllPods(app *iris.Application) {
+	app.Get(badgerLoadTestApiAllPods, func(ctx iris.Context) {
+
+		// Scan all pods with the label
+		podDetails := k8s.GetPodNameAndIPs(namespace, labelSelector)
+		if len(podDetails) == 0 {
+			podDetails = append(podDetails, k8s.PodDetails{Name: "localhost", IP: "localhost"})
+		}
+		zkLogger.InfoF(LogTag, "podDetails = %v", podDetails)
+
+		traceCountPerPod, err := ctx.URLParamInt("traceCountPerPod")
+		if traceCountPerPod == 0 || err != nil {
+			traceCount, err1 := ctx.URLParamInt("traceCount")
+			if traceCount == 0 || err1 != nil {
+				traceCountPerPod = 2
+				zkLogger.DebugF(LogTag, "zero or error traceCount = %v, traceCountPerPod=%v", traceCount, traceCountPerPod)
+			} else {
+				traceCountPerPod = traceCount / len(podDetails)
+				zkLogger.DebugF(LogTag, "zero or error traceCount=%v, len(podDetails)=%v, traceCountPerPod = %v", traceCount, len(podDetails), traceCountPerPod)
+			}
+		}
+
+		out := "accepted for all pods"
+		for _, pod := range podDetails {
+
+			url := fmt.Sprintf("http://%s:%d%s?traceCount=%d", pod.IP, port, badgerLoadTestApi, traceCountPerPod)
+			zkLogger.InfoF(LogTag, "url = %s", url)
+
+			out = fmt.Sprintf("%v\nPodName: %s, IP: %s, url:%s", out, pod.Name, pod.IP, url)
+
+			//	make http call to the pod
+			response, err1 := common.MakeHTTPCall(url)
+			if err1 != nil {
+				zkLogger.ErrorF(LogTag, "Error in making an http call %v", err1)
+			}
+
+			out = fmt.Sprintf("%v Status: %s", out, response)
+		}
+
+		ctx.StatusCode(iris.StatusAccepted)
+		_, err = ctx.WriteString(out)
+		if err != nil {
+			zkLogger.ErrorF(LogTag, "Unable to write response %v", err)
+			return
+		}
+
+	}).Describe("badger load generator")
 }

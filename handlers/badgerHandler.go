@@ -3,7 +3,8 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	badger "github.com/dgraph-io/badger/v4"
+	"github.com/dgraph-io/badger/v4"
+	"github.com/prometheus/client_golang/prometheus"
 	zkLogger "github.com/zerok-ai/zk-utils-go/logs"
 	zktick "github.com/zerok-ai/zk-utils-go/ticker"
 	"redis-test/config"
@@ -20,7 +21,26 @@ type TraceInBadger struct {
 	Spans []SpanInBadger `json:"sps"`
 }
 
+var (
+	badgerObjectsCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "zk_badger_objects",
+			Help: "Total number of objects written in badger",
+		},
+		[]string{"method"},
+	)
+
+	badgerWritesCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "zk_badger_writes",
+			Help: "Total number of writes to badger",
+		},
+		[]string{"method"},
+	)
+)
+
 const badgerHandlerLogTag = "BadgerHandler"
+const badgerDbPath = "/tmp/badger"
 
 type BadgerHandler struct {
 	ctx          context.Context
@@ -30,6 +50,9 @@ type BadgerHandler struct {
 	syncInterval int
 	batchSize    int
 	db           *badger.DB
+	wb           *badger.WriteBatch
+	count        int
+	startTime    time.Time
 }
 
 func NewBadgerHandler(configs *config.AppConfigs, dbName string) (DBHandler, error) {
@@ -59,22 +82,26 @@ func NewBadgerHandler(configs *config.AppConfigs, dbName string) (DBHandler, err
 
 func (b *BadgerHandler) PutTraceData(traceId string, spanId string, spanDetails model.OTelSpanDetails) error {
 	//TODO implement me
-	panic("implement me")
-}
 
-func (b *BadgerHandler) SyncPipeline() {
+	////check badger connection
+	//if err := h.CheckRedisConnection(); err != nil {
+	//	zkLogger.Error(badgerHandlerLogTag, "Error while checking badger conn ", err)
+	//	return err
+	//}
 
-	//key := []byte("merge")
-	//
-	//m := db.GetMergeOperator(key, add, 200*time.Millisecond)
-	//defer m.Stop()
-	//
-	//m.Add([]byte("A"))
-	//m.Add([]byte("B"))
-	//m.Add([]byte("C"))
-
-	//TODO implement me
-	panic("implement me")
+	spanJsonMap := make(map[string]string)
+	spanJSON, err := json.Marshal(spanDetails)
+	if err != nil {
+		zkLogger.Debug(badgerHandlerLogTag, "Error encoding SpanDetails for spanID %s: %v\n", spanId, err)
+		return err
+	}
+	spanJsonMap[spanId] = string(spanJSON)
+	err = b.HMSetBadgerPipeline(traceId, spanJsonMap, time.Duration(b.config.Traces.Ttl)*time.Second)
+	if err != nil {
+		zkLogger.Error(badgerHandlerLogTag, "Error while setting trace details for traceId %s: %v\n", traceId, err)
+		return err
+	}
+	return nil
 }
 
 // Merge function to append one byte slice to another
@@ -129,10 +156,43 @@ func (b *BadgerHandler) InitializeConn() error {
 		return err
 	}
 
+	wb := db.NewWriteBatch()
+	b.wb = wb
 	b.db = db
 	return nil
 }
 
 func (b *BadgerHandler) Close() error {
 	return b.db.Close()
+}
+
+func (h *BadgerHandler) HMSetBadgerPipeline(key string, value map[string]string, expiration time.Duration) error {
+	newValue, _ := json.Marshal(value)
+
+	if err := h.wb.SetEntry(badger.NewEntry([]byte(key), []byte(newValue)).
+		WithTTL(expiration)); err != nil {
+		return err
+	}
+	h.count++
+	return nil
+}
+
+func (h *BadgerHandler) SyncPipeline() {
+	syncDuration := time.Duration(h.syncInterval) * time.Second
+	count := h.count
+	if count > h.batchSize || (count > 0 && time.Since(h.startTime) >= syncDuration) {
+		err := h.wb.Flush()
+		if err != nil {
+			zkLogger.Error(badgerHandlerLogTag, "Error while syncing data to Badger ", err)
+			return
+		}
+
+		badgerWritesCounter.WithLabelValues("badger-writes").Inc()
+		badgerObjectsCounter.WithLabelValues("badger-writes").Add(float64(count))
+
+		zkLogger.Debug(badgerHandlerLogTag, "Pipeline synchronized. event sent. Batch size =", count)
+
+		h.count -= count
+		h.startTime = time.Now()
+	}
 }
