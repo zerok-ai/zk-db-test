@@ -99,7 +99,6 @@ func (th *TraceHandler) PushDataToBadger(runId string, traceCount, spanCountPerT
 
 			parentSpanId = spanID
 		}
-		th.traceBadgerHandler.SyncPipeline()
 	}
 
 	th.traceBadgerHandler.SyncPipeline()

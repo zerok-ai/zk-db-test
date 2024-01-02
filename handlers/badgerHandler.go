@@ -174,6 +174,9 @@ func (b *BadgerHandler) HMSetBadgerPipeline(key string, value string, expiration
 		return err
 	}
 	b.count++
+	if b.count > b.batchSize {
+		b.SyncPipeline()
+	}
 	return nil
 }
 
