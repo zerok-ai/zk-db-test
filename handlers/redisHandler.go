@@ -217,6 +217,8 @@ func (h *RedisHandler) SyncPipeline() {
 			return
 		}
 
+		requestCounter++
+
 		redisWritesCounter.WithLabelValues("redis-writes").Inc()
 		redisObjectsCounter.WithLabelValues("redis-writes").Add(float64(count))
 

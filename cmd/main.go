@@ -181,6 +181,8 @@ func configureBadgerLoadGeneratorAPI(app *iris.Application, badgerLoadGenerator 
 			go badgerLoadGenerator.GenerateLoad(traceCount / concurrentWrites)
 		}
 
+		go badgerLoadGenerator.LogDBRequestsLoad()
+
 		ctx.StatusCode(iris.StatusAccepted)
 		_, err = ctx.WriteString("accepted")
 		if err != nil {

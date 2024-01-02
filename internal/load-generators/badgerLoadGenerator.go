@@ -42,3 +42,7 @@ func (badgerLoadGenerator BadgerLoadGenerator) GenerateLoad(traceCount int) {
 	runId := uuid.New().String()
 	badgerLoadGenerator.traceHandler.PushDataToBadger(runId, traceCount, spansPerTrace)
 }
+
+func (badgerLoadGenerator BadgerLoadGenerator) LogDBRequestsLoad() {
+	badgerLoadGenerator.traceHandler.LogDBRequestsLoad()
+}

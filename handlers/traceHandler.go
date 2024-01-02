@@ -144,7 +144,7 @@ func generateRandomHex(length int) string {
 	return string(result)
 }
 
-func logRequestsPerSecond() {
+func (th *TraceHandler) LogDBRequestsLoad() {
 	for {
 		time.Sleep(logInterval * time.Second)
 		currentCount := requestCounter
