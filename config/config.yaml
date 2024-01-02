@@ -13,7 +13,7 @@ redis:
 badger:
   filePath: /zk/badger
 traces:
-  syncDurationMS: 1000
+  syncDurationMS: 10000
   syncBatchSize: 30
   ttl: 1800
 logs:
