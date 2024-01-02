@@ -12,7 +12,7 @@ import (
 )
 
 var traceLogTag = "TraceHandler"
-var delimiter = "__"
+var delimiter = "-"
 
 type DBHandler interface {
 	PutTraceData(traceId string, spanId string, spanDetails model.OTelSpanDetails) error

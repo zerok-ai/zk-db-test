@@ -36,6 +36,8 @@ spec:
         volumeMounts:
         - mountPath: /zk/config
           name: config
+        - mountPath: /zerok/badger-db
+          name: badger-data
         env: # Setting Enviornmental Variables
           - name: ZK_REDIS_PASSWORD # Setting Redis password from Secret
             valueFrom:
@@ -51,3 +53,6 @@ spec:
       - configMap:
           name: zk-db-test
         name: config
+      - name: badger-data
+        persistentVolumeClaim:
+          claimName: zerok-badger-pvc

@@ -40,7 +40,7 @@ var (
 )
 
 const badgerHandlerLogTag = "BadgerHandler"
-const badgerDbPath = "/tmp/badger"
+const badgerDbPath = "/zerok/badger-db"
 
 type BadgerHandler struct {
 	ctx          context.Context
@@ -89,14 +89,14 @@ func (b *BadgerHandler) PutTraceData(traceId string, spanId string, spanDetails 
 	//	return err
 	//}
 
-	spanJsonMap := make(map[string]string)
 	spanJSON, err := json.Marshal(spanDetails)
 	if err != nil {
 		zkLogger.Debug(badgerHandlerLogTag, "Error encoding SpanDetails for spanID %s: %v\n", spanId, err)
 		return err
 	}
-	spanJsonMap[spanId] = string(spanJSON)
-	err = b.HMSetBadgerPipeline(traceId, spanJsonMap, time.Duration(b.config.Traces.Ttl)*time.Second)
+	spanJsonStr := string(spanJSON)
+	newTraceId := traceId + delimiter + spanId
+	err = b.HMSetBadgerPipeline(newTraceId, spanJsonStr, time.Duration(b.config.Traces.Ttl)*time.Second)
 	if err != nil {
 		zkLogger.Error(badgerHandlerLogTag, "Error while setting trace details for traceId %s: %v\n", traceId, err)
 		return err
@@ -150,7 +150,7 @@ func (b *BadgerHandler) InitializeConn() error {
 
 	// Open the Badger database located in the /tmp/badger directory.
 	// It will be created if it doesn't exist.
-	db, err := badger.Open(badger.DefaultOptions("/tmp/badger"))
+	db, err := badger.Open(badger.DefaultOptions(badgerDbPath))
 	if err != nil {
 		zkLogger.Error(badgerHandlerLogTag, "Error while initializing connection ", err)
 		return err
@@ -166,10 +166,10 @@ func (b *BadgerHandler) Close() error {
 	return b.db.Close()
 }
 
-func (b *BadgerHandler) HMSetBadgerPipeline(key string, value map[string]string, expiration time.Duration) error {
+func (b *BadgerHandler) HMSetBadgerPipeline(key string, value string, expiration time.Duration) error {
 	newValue, _ := json.Marshal(value)
 
-	if err := b.wb.SetEntry(badger.NewEntry([]byte(key), []byte(newValue)).
+	if err := b.wb.SetEntry(badger.NewEntry([]byte(key), newValue).
 		WithTTL(expiration)); err != nil {
 		return err
 	}
