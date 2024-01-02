@@ -200,7 +200,7 @@ func (b *BadgerHandler) SyncPipeline() {
 		badgerWritesCounter.WithLabelValues("badger-writes").Inc()
 		badgerObjectsCounter.WithLabelValues("badger-writes").Add(float64(count))
 
-		zkLogger.Debug(badgerHandlerLogTag, "Pipeline synchronized. event sent. Batch size =", count)
+		//zkLogger.Debug(badgerHandlerLogTag, "Pipeline synchronized. event sent. Batch size =", count)
 
 		b.count -= count
 		b.startTime = time.Now()
