@@ -168,9 +168,18 @@ func configureBadgerLoadGeneratorAPI(app *iris.Application, badgerLoadGenerator 
 			traceCount = 2
 		}
 
-		BadgerWriteRequestCounter.WithLabelValues("badger-writes").Add(float64(traceCount))
+		concurrentWrites, err := ctx.URLParamInt("concurrentWrites")
+		if concurrentWrites == 0 || err != nil {
+			concurrentWrites = 10
+		}
 
-		go badgerLoadGenerator.GenerateLoad(traceCount)
+		BadgerWriteRequestCounter.WithLabelValues("badger-writes").Add(float64(traceCount))
+		BadgerWriteRequestCounter.WithLabelValues("badger-Concurrent-writes").Add(float64(concurrentWrites))
+
+		//make 10 concurrent writes on badger
+		for i := 0; i < concurrentWrites; i++ {
+			go badgerLoadGenerator.GenerateLoad(traceCount / concurrentWrites)
+		}
 
 		ctx.StatusCode(iris.StatusAccepted)
 		_, err = ctx.WriteString("accepted")

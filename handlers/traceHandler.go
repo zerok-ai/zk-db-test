@@ -4,6 +4,7 @@ import (
 	"fmt"
 	logger "github.com/zerok-ai/zk-utils-go/logs"
 	"github.com/zerok-ai/zk-utils-go/storage/redis/clientDBNames"
+	"log"
 	"math/rand"
 	"redis-test/config"
 	"redis-test/model"
@@ -13,6 +14,11 @@ import (
 
 var traceLogTag = "TraceHandler"
 var delimiter = "-"
+var requestCounter int
+
+const (
+	logInterval = 1 // Log every 5 seconds
+)
 
 type DBHandler interface {
 	PutTraceData(traceId string, spanId string, spanDetails model.OTelSpanDetails) error
@@ -93,6 +99,7 @@ func (th *TraceHandler) PushDataToBadger(runId string, traceCount, spanCountPerT
 
 			parentSpanId = spanID
 		}
+		th.traceBadgerHandler.SyncPipeline()
 	}
 
 	th.traceBadgerHandler.SyncPipeline()
@@ -100,8 +107,25 @@ func (th *TraceHandler) PushDataToBadger(runId string, traceCount, spanCountPerT
 
 // Populate Span common properties.
 func (th *TraceHandler) createSpanDetails(parentSpanId string) model.OTelSpanDetails {
-	spanDetail := model.OTelSpanDetails{}
+	spanDetail := model.OTelSpanDetails{
+		SpanKind:       "server",
+		ServiceName:    "zk-db-test",
+		SpanName:       "test-span",
+		StartNs:        uint64(time.Now().UnixNano()),
+		Protocol:       "HTTP",
+		Destination:    nil,
+		Source:         nil,
+		SpanAttributes: nil,
+		Scheme:         nil,
+		Path:           nil,
+		Query:          nil,
+		Status:         nil,
+		Username:       nil,
+		Method:         nil,
+		Route:          nil,
+	}
 	spanDetail.SetParentSpanId(parentSpanId)
+
 	return spanDetail
 }
 
@@ -118,4 +142,13 @@ func generateRandomHex(length int) string {
 		result[i] = hexChars[rand.Intn(len(hexChars))]
 	}
 	return string(result)
+}
+
+func logRequestsPerSecond() {
+	for {
+		time.Sleep(logInterval * time.Second)
+		currentCount := requestCounter
+		requestCounter = 0 // Reset counter for the next interval
+		log.Printf("Requests per second: %d", currentCount/logInterval)
+	}
 }

@@ -186,6 +186,8 @@ func (b *BadgerHandler) SyncPipeline() {
 			zkLogger.Error(badgerHandlerLogTag, "Error while syncing data to Badger ", err)
 			return
 		}
+		//request counter to badger DB
+		requestCounter++
 
 		badgerWritesCounter.WithLabelValues("badger-writes").Inc()
 		badgerObjectsCounter.WithLabelValues("badger-writes").Add(float64(count))
