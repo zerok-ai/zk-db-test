@@ -95,6 +95,7 @@ func (b *BadgerHandler) PutTraceData(traceId string, spanId string, spanDetails 
 		return err
 	}
 	spanJsonStr := string(spanJSON)
+
 	newTraceId := traceId + delimiter + spanId
 	err = b.HMSetBadgerPipeline(newTraceId, spanJsonStr, time.Duration(b.config.Traces.Ttl)*time.Second)
 	if err != nil {
@@ -189,6 +190,8 @@ func (b *BadgerHandler) SyncPipeline() {
 			zkLogger.Error(badgerHandlerLogTag, "Error while syncing data to Badger ", err)
 			return
 		}
+		//refreshing the write batch for new batch to overcome  Batch commit not permitted after finish error
+		b.wb = b.db.NewWriteBatch()
 		//request counter to badger DB
 		requestCounter++
 
