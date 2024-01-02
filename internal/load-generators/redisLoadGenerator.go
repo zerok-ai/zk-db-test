@@ -21,12 +21,7 @@ func (redisLoadGenerator RedisLoadGenerator) Close() {
 
 }
 
-func NewRedisLoadGenerator(cfg config.AppConfigs) (*RedisLoadGenerator, error) {
-
-	traceHandler, err := handlers.NewTraceHandler(&cfg)
-	if err != nil {
-		return nil, err
-	}
+func NewRedisLoadGenerator(cfg config.AppConfigs, traceHandler *handlers.TraceHandler) (*RedisLoadGenerator, error) {
 
 	fp := RedisLoadGenerator{
 		id:           "RLG" + uuid.New().String(),

@@ -9,6 +9,7 @@ import (
 	zkLogger "github.com/zerok-ai/zk-utils-go/logs"
 	"os"
 	"redis-test/config"
+	"redis-test/handlers"
 	"redis-test/internal/common"
 	"redis-test/internal/k8s"
 	loadGenerators "redis-test/internal/load-generators"
@@ -65,13 +66,18 @@ func main() {
 	zkHttpConfig.Init(cfg.Http.Debug)
 	zkLogger.Init(cfg.LogsConfig)
 
-	redisLoadGenerator, err := loadGenerators.NewRedisLoadGenerator(cfg)
+	traceHandler, err := handlers.NewTraceHandler(&cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	redisLoadGenerator, err := loadGenerators.NewRedisLoadGenerator(cfg, traceHandler)
 	if err != nil {
 		panic(err)
 	}
 	defer redisLoadGenerator.Close()
 
-	badgerLoadGenerator, err := loadGenerators.NewBadgerLoadGenerator(cfg)
+	badgerLoadGenerator, err := loadGenerators.NewBadgerLoadGenerator(cfg, traceHandler)
 	if err != nil {
 		panic(err)
 	}

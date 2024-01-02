@@ -28,12 +28,7 @@ func (badgerLoadGenerator BadgerLoadGenerator) Close() {
 	}
 }
 
-func NewBadgerLoadGenerator(cfg config.AppConfigs) (*BadgerLoadGenerator, error) {
-
-	traceHandler, err := handlers.NewTraceHandler(&cfg)
-	if err != nil {
-		return nil, err
-	}
+func NewBadgerLoadGenerator(cfg config.AppConfigs, traceHandler *handlers.TraceHandler) (*BadgerLoadGenerator, error) {
 
 	fp := BadgerLoadGenerator{
 		id:           "BLG" + uuid.New().String(),
