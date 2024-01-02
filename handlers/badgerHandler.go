@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	zkLogger "github.com/zerok-ai/zk-utils-go/logs"
 	zktick "github.com/zerok-ai/zk-utils-go/ticker"
+	"log"
 	"redis-test/config"
 	"redis-test/model"
 	"time"
@@ -37,6 +38,7 @@ var (
 		},
 		[]string{"method"},
 	)
+	requestCounter int64
 )
 
 const badgerHandlerLogTag = "BadgerHandler"
@@ -85,9 +87,9 @@ func (b *BadgerHandler) PutTraceData(traceId string, spanId string, spanDetails 
 
 	////check badger connection
 	//if err := h.CheckRedisConnection(); err != nil {
-	//	zkLogger.Error(badgerHandlerLogTag, "Error while checking badger conn ", err)
+	//	zkLogger.Error(badgerHandlerLogTag, "Error while checking badger conn ", err
 	//	return err
-	//}
+	//
 
 	spanJSON, err := json.Marshal(spanDetails)
 	if err != nil {
@@ -211,4 +213,13 @@ func (b *BadgerHandler) CloseDbConnection() error {
 		return err
 	}
 	return nil
+}
+
+func (b *BadgerHandler) LogDBRequestsLoad() {
+	for {
+		time.Sleep(logInterval * time.Second)
+		currentCount := requestCounter
+		requestCounter = 0 // Reset counter for the next interval
+		log.Printf("Requests per second: %d", currentCount/logInterval)
+	}
 }

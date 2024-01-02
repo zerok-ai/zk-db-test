@@ -4,7 +4,6 @@ import (
 	"fmt"
 	logger "github.com/zerok-ai/zk-utils-go/logs"
 	"github.com/zerok-ai/zk-utils-go/storage/redis/clientDBNames"
-	"log"
 	"math/rand"
 	"redis-test/config"
 	"redis-test/model"
@@ -14,7 +13,6 @@ import (
 
 var traceLogTag = "TraceHandler"
 var delimiter = "-"
-var requestCounter int
 
 const (
 	logInterval = 1 // Log every 5 seconds
@@ -24,6 +22,7 @@ type DBHandler interface {
 	PutTraceData(traceId string, spanId string, spanDetails model.OTelSpanDetails) error
 	SyncPipeline()
 	CloseDbConnection() error
+	LogDBRequestsLoad()
 }
 
 type TraceHandler struct {
@@ -143,11 +142,10 @@ func generateRandomHex(length int) string {
 	return string(result)
 }
 
-func (th *TraceHandler) LogDBRequestsLoad() {
-	for {
-		time.Sleep(logInterval * time.Second)
-		currentCount := requestCounter
-		requestCounter = 0 // Reset counter for the next interval
-		log.Printf("Requests per second: %d", currentCount/logInterval)
-	}
+func (th *TraceHandler) LogBadgerDBRequestsLoad() {
+	th.traceBadgerHandler.LogDBRequestsLoad()
+}
+
+func (th *TraceHandler) LogRedisDBRequestsLoad() {
+	th.traceRedisHandler.LogDBRequestsLoad()
 }

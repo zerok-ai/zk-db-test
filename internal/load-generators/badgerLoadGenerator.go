@@ -44,5 +44,5 @@ func (badgerLoadGenerator BadgerLoadGenerator) GenerateLoad(traceCount int) {
 }
 
 func (badgerLoadGenerator BadgerLoadGenerator) LogDBRequestsLoad() {
-	badgerLoadGenerator.traceHandler.LogDBRequestsLoad()
+	badgerLoadGenerator.traceHandler.LogBadgerDBRequestsLoad()
 }

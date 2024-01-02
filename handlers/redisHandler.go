@@ -8,6 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	zkLogger "github.com/zerok-ai/zk-utils-go/logs"
 	zktick "github.com/zerok-ai/zk-utils-go/ticker"
+	"log"
 	"redis-test/config"
 	"redis-test/model"
 	"time"
@@ -252,4 +253,13 @@ func (h *RedisHandler) shutdown() {
 
 func (h *RedisHandler) CloseDbConnection() error {
 	return h.RedisClient.Close()
+}
+
+func (h *RedisHandler) LogDBRequestsLoad() {
+	for {
+		time.Sleep(logInterval * time.Second)
+		currentCount := requestCounter
+		requestCounter = 0 // Reset counter for the next interval
+		log.Printf("Requests per second: %d", currentCount/logInterval)
+	}
 }
