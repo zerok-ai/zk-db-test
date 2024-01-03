@@ -23,6 +23,8 @@ type DBHandler interface {
 	SyncPipeline()
 	CloseDbConnection() error
 	LogDBRequestsLoad()
+	GetDataFromBadger(id string) (string, error)
+	GetAnyKeyValuePair() (string, string, error)
 }
 
 type TraceHandler struct {
@@ -148,4 +150,12 @@ func (th *TraceHandler) LogBadgerDBRequestsLoad() {
 
 func (th *TraceHandler) LogRedisDBRequestsLoad() {
 	th.traceRedisHandler.LogDBRequestsLoad()
+}
+
+func (th *TraceHandler) GetDataFromBadger(id string) (string, error) {
+	return th.traceBadgerHandler.GetDataFromBadger(id)
+}
+
+func (th *TraceHandler) GetRandomKeyValueDataFromBadger() (string, string, error) {
+	return th.traceBadgerHandler.GetAnyKeyValuePair()
 }

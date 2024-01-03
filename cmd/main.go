@@ -127,9 +127,52 @@ func newApp(cfg config.AppConfigs, redisLoadGenerator *loadGenerators.RedisLoadG
 	configureRedisLoadGeneratorAPI(app, redisLoadGenerator)
 	configureRedisLoadGeneratorAPIForAllPods(app)
 	configureBadgerLoadGeneratorAPI(app, badgerLoadGenerator)
+	configureBadgerGetAPI(app, badgerLoadGenerator)
+	configureBadgerGetRandomKeyValueAPI(app, badgerLoadGenerator)
 	configureBadgerLoadGeneratorAPIForAllPods(app)
 
 	return app
+}
+
+func configureBadgerGetAPI(app *iris.Application, badgerLoadGenerator *loadGenerators.BadgerLoadGenerator) {
+	app.Get(badgerLoadTestApi, func(ctx iris.Context) {
+
+		traceId := ctx.URLParam("traceId")
+		if traceId == "" {
+			return // no traceId
+		}
+		badger, err2 := badgerLoadGenerator.GetDataFromBadger(traceId)
+		if err2 != nil {
+			return
+		}
+
+		ctx.StatusCode(iris.StatusAccepted)
+		_, err := ctx.WriteString(badger)
+		if err != nil {
+			zkLogger.ErrorF(LogTag, "Unable to write response %v", err)
+			return
+		}
+
+	}).Describe("badger load generator")
+}
+
+func configureBadgerGetRandomKeyValueAPI(app *iris.Application, badgerLoadGenerator *loadGenerators.BadgerLoadGenerator) {
+	app.Get(badgerLoadTestApi, func(ctx iris.Context) {
+		var key string
+		var value string
+		key, value, err2 := badgerLoadGenerator.GetRandomKeyValueDataFromBadger()
+		if err2 != nil {
+			return
+		}
+
+		ctx.StatusCode(iris.StatusAccepted)
+		_, err := ctx.WriteString(key + " : " + value)
+		if err != nil {
+			zkLogger.ErrorF(LogTag, "Unable to write response %v", err)
+			return
+		}
+
+	}).Describe("badger load generator")
 }
 
 func configureHealthAPI(app *iris.Application) {
@@ -180,8 +223,6 @@ func configureBadgerLoadGeneratorAPI(app *iris.Application, badgerLoadGenerator 
 		for i := 0; i < concurrentWrites; i++ {
 			go badgerLoadGenerator.GenerateLoad(traceCount / concurrentWrites)
 		}
-
-		go badgerLoadGenerator.LogDBRequestsLoad()
 
 		ctx.StatusCode(iris.StatusAccepted)
 		_, err = ctx.WriteString("accepted")

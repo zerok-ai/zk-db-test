@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/prometheus/client_golang/prometheus"
 	zkLogger "github.com/zerok-ai/zk-utils-go/logs"
@@ -222,4 +223,69 @@ func (b *BadgerHandler) LogDBRequestsLoad() {
 		requestCounter = 0 // Reset counter for the next interval
 		log.Printf("Requests per second: %d", currentCount/logInterval)
 	}
+}
+
+func (b *BadgerHandler) GetDataFromBadger(id string) (string, error) {
+
+	badgerDbValue := ""
+	err := b.db.View(func(txn *badger.Txn) error {
+		key := []byte(id)
+		item, err := txn.Get(key)
+		if err != nil {
+			return err
+		}
+
+		// Accessing the value
+		var value []byte
+		err = item.Value(func(val []byte) error {
+			value = append([]byte{}, val...)
+			return nil
+		})
+
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Key: %s, Value: %s\n", key, value)
+		badgerDbValue = string(value) // Assign the value to temp
+		return nil
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return badgerDbValue, nil
+}
+
+func (b *BadgerHandler) GetAnyKeyValuePair() (string, string, error) {
+	var key, value string
+
+	err := b.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		// Move to the first key-value pair
+		it.Rewind()
+		if it.Valid() {
+			item := it.Item()
+			key = string(item.Key())
+			val, err := item.ValueCopy(nil)
+			if err != nil {
+				return err
+			}
+			value = string(val)
+		} else {
+			return fmt.Errorf("database is empty")
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return "", "", err
+	}
+
+	return key, value, nil
 }

@@ -40,7 +40,16 @@ func NewBadgerLoadGenerator(cfg config.AppConfigs, traceHandler *handlers.TraceH
 
 func (badgerLoadGenerator BadgerLoadGenerator) GenerateLoad(traceCount int) {
 	runId := uuid.New().String()
+	go badgerLoadGenerator.LogDBRequestsLoad()
 	badgerLoadGenerator.traceHandler.PushDataToBadger(runId, traceCount, spansPerTrace)
+}
+
+func (badgerLoadGenerator BadgerLoadGenerator) GetDataFromBadger(traceId string) (string, error) {
+	return badgerLoadGenerator.traceHandler.GetDataFromBadger(traceId)
+}
+
+func (badgerLoadGenerator BadgerLoadGenerator) GetRandomKeyValueDataFromBadger() (string, string, error) {
+	return badgerLoadGenerator.traceHandler.GetRandomKeyValueDataFromBadger()
 }
 
 func (badgerLoadGenerator BadgerLoadGenerator) LogDBRequestsLoad() {

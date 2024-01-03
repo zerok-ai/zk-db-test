@@ -21,18 +21,18 @@ spec:
         name: zk-db-test
         ports:
           - containerPort: 80
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            port: 80
-          successThreshold: 3
+#        readinessProbe:
+#          httpGet:
+#            path: /healthz
+#            port: 80
+#          successThreshold: 3
         resources:
           limits:
             cpu: 256m
-            memory: 128Mi
+            memory: 500Mi
           requests:
-            cpu: 128m
-            memory: 64Mi
+            cpu: 256m
+            memory: 500Mi
         volumeMounts:
         - mountPath: /zk/config
           name: config
