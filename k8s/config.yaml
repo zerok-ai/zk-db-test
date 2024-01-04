@@ -19,7 +19,7 @@ data:
       port: 80
     traces:
       syncDurationMS: 3000
-      syncBatchSize: 30
+      syncBatchSize: 15
       ttl: 300
     logs:
       color: true

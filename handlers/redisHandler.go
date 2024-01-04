@@ -68,9 +68,9 @@ func NewRedisHandler(redisConfig *config.AppConfigs, dbName string) (DBHandler, 
 	handler.Pipeline = handler.RedisClient.Pipeline()
 
 	syncInterval := redisConfig.Traces.SyncDurationMS
-	timerDuration := time.Duration(syncInterval) * time.Millisecond
-	handler.ticker = zktick.GetNewTickerTask("sync_pipeline", timerDuration, handler.SyncPipeline)
-	handler.ticker.Start()
+	//timerDuration := time.Duration(syncInterval) * time.Millisecond
+	//handler.ticker = zktick.GetNewTickerTask("sync_pipeline", timerDuration, handler.SyncPipeline)
+	//handler.ticker.Start()
 
 	handler.syncInterval = syncInterval
 	handler.batchSize = redisConfig.Traces.SyncBatchSize
@@ -262,4 +262,24 @@ func (h *RedisHandler) LogDBRequestsLoad() {
 		requestCounter = 0 // Reset counter for the next interval
 		log.Printf("Requests per second: %d", currentCount/logInterval)
 	}
+}
+
+func (h *RedisHandler) GetAnyKeyValuePair() (string, string, error) {
+	return "", "", nil
+}
+
+func (h *RedisHandler) GetData(id string) (string, error) {
+	return "", nil
+}
+
+func (h *RedisHandler) GetTotalDataCount() (string, error) {
+	return "", nil
+}
+
+func (h *RedisHandler) GarbageCollect() {
+
+}
+
+func (h *RedisHandler) StartCompaction() {
+
 }

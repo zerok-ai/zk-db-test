@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dgraph-io/badger/v4"
+	"github.com/kataras/iris/v12/x/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	zkLogger "github.com/zerok-ai/zk-utils-go/logs"
 	zktick "github.com/zerok-ai/zk-utils-go/ticker"
@@ -72,8 +73,8 @@ func NewBadgerHandler(configs *config.AppConfigs, dbName string) (DBHandler, err
 	}
 
 	syncInterval := configs.Traces.SyncDurationMS
-	timerDuration := time.Duration(syncInterval) * time.Millisecond
-	handler.ticker = zktick.GetNewTickerTask("sync_pipeline", timerDuration, handler.SyncPipeline)
+	timerDuration := 300 * time.Second
+	handler.ticker = zktick.GetNewTickerTask("badger_garbage_collect", timerDuration, handler.GarbageCollect)
 	handler.ticker.Start()
 
 	handler.syncInterval = syncInterval
@@ -154,13 +155,14 @@ func (b *BadgerHandler) InitializeConn() error {
 
 	// Open the Badger database located in the /tmp/badger directory.
 	// It will be created if it doesn't exist.
-	db, err := badger.Open(badger.DefaultOptions(badgerDbPath))
+	db, err := badger.Open(badger.DefaultOptions(badgerDbPath).WithValueLogFileSize(1 << 26))
 	if err != nil {
 		zkLogger.Error(badgerHandlerLogTag, "Error while initializing connection ", err)
 		return err
 	}
 
 	wb := db.NewWriteBatch()
+
 	b.wb = wb
 	b.db = db
 	return nil
@@ -185,9 +187,10 @@ func (b *BadgerHandler) HMSetBadgerPipeline(key string, value string, expiration
 }
 
 func (b *BadgerHandler) SyncPipeline() {
-	syncDuration := time.Duration(b.syncInterval) * time.Second
+	//syncDuration := time.Duration(b.syncInterval) * time.Second
 	count := b.count
-	if count > b.batchSize || (count > 0 && time.Since(b.startTime) >= syncDuration) {
+	//|| (count > 0 && time.Since(b.startTime) >= syncDuration)
+	if count > b.batchSize {
 		err := b.wb.Flush()
 		if err != nil {
 			zkLogger.Error(badgerHandlerLogTag, "Error while syncing data to Badger ", err)
@@ -208,6 +211,18 @@ func (b *BadgerHandler) SyncPipeline() {
 	}
 }
 
+func (b *BadgerHandler) GarbageCollect() {
+
+	err := b.db.RunValueLogGC(0.001)
+	if err != nil {
+		if errors.Is(err, badger.ErrNoRewrite) {
+			zkLogger.Debug(badgerHandlerLogTag, "No BadgerDB GC occurred:", err)
+		} else {
+			zkLogger.Error(badgerHandlerLogTag, "Error while running garbage collector ", err)
+		}
+	}
+}
+
 func (b *BadgerHandler) CloseDbConnection() error {
 	err := b.db.Close()
 	if err != nil {
@@ -220,12 +235,15 @@ func (b *BadgerHandler) LogDBRequestsLoad() {
 	for {
 		time.Sleep(logInterval * time.Second)
 		currentCount := requestCounter
+		if requestCounter == 0 {
+			break
+		}
 		requestCounter = 0 // Reset counter for the next interval
 		log.Printf("Requests per second: %d", currentCount/logInterval)
 	}
 }
 
-func (b *BadgerHandler) GetDataFromBadger(id string) (string, error) {
+func (b *BadgerHandler) GetData(id string) (string, error) {
 
 	badgerDbValue := ""
 	err := b.db.View(func(txn *badger.Txn) error {
@@ -288,4 +306,55 @@ func (b *BadgerHandler) GetAnyKeyValuePair() (string, string, error) {
 	}
 
 	return key, value, nil
+}
+
+func (b *BadgerHandler) GetTotalDataCount() (string, error) {
+	// Iterate over the keys in the database and count them
+	// Count of keys in memory
+	memoryCount := 0
+	err := b.db.View(func(txn *badger.Txn) error {
+		// Create an iterator for in-memory keys
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+
+		for it.Rewind(); it.Valid(); it.Next() {
+			memoryCount++
+		}
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// Count of keys on disk
+	diskCount := 0
+	err = b.db.View(func(txn *badger.Txn) error {
+		// Create an iterator for keys on disk
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = false // Only fetch keys, not values
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		for it.Rewind(); it.Valid(); it.Next() {
+			diskCount++
+		}
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	diskCountString := fmt.Sprintf("Memory count: %d, Disk count: %d", memoryCount, diskCount)
+	return diskCountString, nil
+
+}
+
+func (b *BadgerHandler) StartCompaction() {
+	err := b.db.Flatten(2)
+	if err != nil {
+		if errors.Is(err, badger.ErrNoRewrite) {
+			zkLogger.Debug(badgerHandlerLogTag, "No BadgerDB GC occurred:", err)
+		} else {
+			zkLogger.Error(badgerHandlerLogTag, "Error while running garbage collector ", err)
+		}
+	}
 }

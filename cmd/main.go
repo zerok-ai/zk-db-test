@@ -40,6 +40,10 @@ var (
 const (
 	redisLoadTestApi         = "/gen-redis-load"
 	badgerLoadTestApi        = "/gen-badger-load"
+	badgerGetData            = "/get-badger-data"
+	badgerGetTotalCount      = "/get-badger-total-count"
+	badgerStartCompaction    = "/badger-start-compaction"
+	badgerGetRandomData      = "/get-badger-random-data"
 	redisLoadTestApiAllPods  = "/gen-redis-load-all"
 	badgerLoadTestApiAllPods = "/gen-badger-load-all"
 
@@ -128,14 +132,16 @@ func newApp(cfg config.AppConfigs, redisLoadGenerator *loadGenerators.RedisLoadG
 	configureRedisLoadGeneratorAPIForAllPods(app)
 	configureBadgerLoadGeneratorAPI(app, badgerLoadGenerator)
 	configureBadgerGetAPI(app, badgerLoadGenerator)
+	configureBadgerGetTotalDataCount(app, badgerLoadGenerator)
 	configureBadgerGetRandomKeyValueAPI(app, badgerLoadGenerator)
 	configureBadgerLoadGeneratorAPIForAllPods(app)
+	configureBadgerCompactionAPI(app, badgerLoadGenerator)
 
 	return app
 }
 
 func configureBadgerGetAPI(app *iris.Application, badgerLoadGenerator *loadGenerators.BadgerLoadGenerator) {
-	app.Get(badgerLoadTestApi, func(ctx iris.Context) {
+	app.Get(badgerGetData, func(ctx iris.Context) {
 
 		traceId := ctx.URLParam("traceId")
 		if traceId == "" {
@@ -156,8 +162,41 @@ func configureBadgerGetAPI(app *iris.Application, badgerLoadGenerator *loadGener
 	}).Describe("badger load generator")
 }
 
+func configureBadgerGetTotalDataCount(app *iris.Application, badgerLoadGenerator *loadGenerators.BadgerLoadGenerator) {
+	app.Get(badgerGetTotalCount, func(ctx iris.Context) {
+
+		totalDataCount, err2 := badgerLoadGenerator.GetTotalDataCount()
+		if err2 != nil {
+			return
+		}
+
+		ctx.StatusCode(iris.StatusAccepted)
+		_, err := ctx.WriteString(totalDataCount)
+		if err != nil {
+			zkLogger.ErrorF(LogTag, "Unable to write response %v", err)
+			return
+		}
+
+	}).Describe("badger load generator")
+}
+
+func configureBadgerCompactionAPI(app *iris.Application, badgerLoadGenerator *loadGenerators.BadgerLoadGenerator) {
+	app.Get(badgerStartCompaction, func(ctx iris.Context) {
+
+		go badgerLoadGenerator.BadgerCompaction()
+
+		ctx.StatusCode(iris.StatusAccepted)
+		_, err := ctx.WriteString("Started Compaction")
+		if err != nil {
+			zkLogger.ErrorF(LogTag, "Unable to write response %v", err)
+			return
+		}
+
+	}).Describe("badger load generator")
+}
+
 func configureBadgerGetRandomKeyValueAPI(app *iris.Application, badgerLoadGenerator *loadGenerators.BadgerLoadGenerator) {
-	app.Get(badgerLoadTestApi, func(ctx iris.Context) {
+	app.Get(badgerGetRandomData, func(ctx iris.Context) {
 		var key string
 		var value string
 		key, value, err2 := badgerLoadGenerator.GetRandomKeyValueDataFromBadger()

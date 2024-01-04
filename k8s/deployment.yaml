@@ -28,11 +28,11 @@ spec:
 #          successThreshold: 3
         resources:
           limits:
-            cpu: 256m
-            memory: 500Mi
+            cpu: 512m
+            memory: 1024Mi
           requests:
-            cpu: 256m
-            memory: 500Mi
+            cpu: 512m
+            memory: 1024Mi
         volumeMounts:
         - mountPath: /zk/config
           name: config

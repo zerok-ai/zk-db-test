@@ -55,3 +55,11 @@ func (badgerLoadGenerator BadgerLoadGenerator) GetRandomKeyValueDataFromBadger()
 func (badgerLoadGenerator BadgerLoadGenerator) LogDBRequestsLoad() {
 	badgerLoadGenerator.traceHandler.LogBadgerDBRequestsLoad()
 }
+
+func (badgerLoadGenerator BadgerLoadGenerator) GetTotalDataCount() (string, error) {
+	return badgerLoadGenerator.traceHandler.GetTotalDataCount()
+}
+
+func (badgerLoadGenerator BadgerLoadGenerator) BadgerCompaction() {
+	badgerLoadGenerator.traceHandler.StartBadgerCompaction()
+}
