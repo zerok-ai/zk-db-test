@@ -29,6 +29,7 @@ type DBHandler interface {
 	GetAnyKeyValuePair() (string, string, error)
 	GetTotalDataCount() (string, error)
 	StartCompaction()
+	logDataFromDB()
 }
 
 type TraceHandler struct {

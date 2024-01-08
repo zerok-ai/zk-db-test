@@ -283,3 +283,7 @@ func (h *RedisHandler) GarbageCollect() {
 func (h *RedisHandler) StartCompaction() {
 
 }
+
+func (h *RedisHandler) logDataFromDB() {
+
+}

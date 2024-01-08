@@ -77,6 +77,11 @@ func NewBadgerHandler(configs *config.AppConfigs, dbName string) (DBHandler, err
 	handler.ticker = zktick.GetNewTickerTask("badger_garbage_collect", timerDuration, handler.GarbageCollect)
 	handler.ticker.Start()
 
+	//read data from badger for every 5 mins and log the count
+	var readTicker *zktick.TickerTask
+	readTicker = zktick.GetNewTickerTask("badger_log_data_count", timerDuration, handler.logDataFromDB)
+	readTicker.Start()
+
 	handler.syncInterval = syncInterval
 	handler.batchSize = configs.Traces.SyncBatchSize
 	handler.ctx = context.Background()
@@ -241,6 +246,19 @@ func (b *BadgerHandler) LogDBRequestsLoad() {
 		requestCounter = 0 // Reset counter for the next interval
 		log.Printf("Requests per second: %d", currentCount/logInterval)
 	}
+}
+
+func (b *BadgerHandler) logDataFromDB() {
+	//logs data from badger for every 5 mins
+	count, err := b.GetTotalDataCount()
+	if err != nil {
+		fmt.Printf("Error while getting total data count: %s\n", err)
+	}
+	pair, s, err := b.GetAnyKeyValuePair()
+	if err != nil {
+		fmt.Printf("Error while getting any key value pair: %s\n", err)
+	}
+	fmt.Printf("Total data count: %s, badger random key value pair: %s, %s\n", count, pair, s)
 }
 
 func (b *BadgerHandler) GetData(id string) (string, error) {
