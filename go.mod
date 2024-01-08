@@ -8,7 +8,7 @@ require (
 	github.com/kataras/iris/v12 v12.2.0
 	github.com/prometheus/client_golang v1.17.0
 	github.com/redis/go-redis/v9 v9.0.5
-	github.com/zerok-ai/zk-utils-go v0.5.19-test3.0.20240104123737-e387dead3502
+	github.com/zerok-ai/zk-utils-go v0.5.19-test3.0.20240105080735-98281b20f0bd
 	k8s.io/api v0.27.1
 	k8s.io/apimachinery v0.27.1
 	k8s.io/client-go v0.27.1

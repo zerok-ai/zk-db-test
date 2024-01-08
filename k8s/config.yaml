@@ -34,4 +34,4 @@ metadata:
   labels:
     app: zk-db-test
     name: zk-db-test
-  namespace: zk-client
+  namespace: zk-loadtest

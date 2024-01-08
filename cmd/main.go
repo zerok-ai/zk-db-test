@@ -47,7 +47,7 @@ const (
 	redisLoadTestApiAllPods  = "/gen-redis-load-all"
 	badgerLoadTestApiAllPods = "/gen-badger-load-all"
 
-	namespace     = "zk-client"
+	namespace     = "zk-loadtest"
 	serviceName   = "zk-db-test"
 	labelSelector = "app=zk-db-test"
 	port          = 80

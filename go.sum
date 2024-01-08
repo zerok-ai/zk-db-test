@@ -284,6 +284,8 @@ github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9dec
 github.com/yuin/goldmark v1.4.1/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/zerok-ai/zk-utils-go v0.5.19-test3.0.20240104123737-e387dead3502 h1:KXA48J2Dpmxll5TAqohh63GoADEUZ+8WV4Ve6bpNWtU=
 github.com/zerok-ai/zk-utils-go v0.5.19-test3.0.20240104123737-e387dead3502/go.mod h1:JhhMTjrxcY5Rze4KxYU6KgK8LOipbiHbZgvBG3KcGfc=
+github.com/zerok-ai/zk-utils-go v0.5.19-test3.0.20240105080735-98281b20f0bd h1:yxDN4BrtQ+D0j9aiyWn7gUh/TSmAmjnRyGNYIqNuQcE=
+github.com/zerok-ai/zk-utils-go v0.5.19-test3.0.20240105080735-98281b20f0bd/go.mod h1:JhhMTjrxcY5Rze4KxYU6KgK8LOipbiHbZgvBG3KcGfc=
 go.opencensus.io v0.22.5 h1:dntmOdLpSpHlVqbW5Eay97DelsZHe+55D+xC6i0dDS0=
 go.opencensus.io v0.22.5/go.mod h1:5pWMHQbX5EPX2/62yrJeAkowc+lfs/XD7Uxpq3pI6kk=
 golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
