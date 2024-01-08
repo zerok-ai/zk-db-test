@@ -59,7 +59,8 @@ func NewTracesBadgerHandler(app *config.AppConfigs) (*BadgerHandler, error) {
 
 	//read data from badger for every 5 mins and log the count
 	var readTicker *zktick.TickerTask
-	readTicker = zktick.GetNewTickerTask("badger_log_data_count", app.Badger.GCTimerDuration, func() {
+	timerDuration := time.Duration(app.Badger.GCTimerDuration) * time.Second
+	readTicker = zktick.GetNewTickerTask("badger_log_data_count", timerDuration, func() {
 		LogDataFromDB(badgerHandler)
 	})
 	readTicker.Start()
