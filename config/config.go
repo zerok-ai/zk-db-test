@@ -3,6 +3,7 @@ package config
 import (
 	zkHttpConfig "github.com/zerok-ai/zk-utils-go/http/config"
 	zkLogsConfig "github.com/zerok-ai/zk-utils-go/logs/config"
+	badger "github.com/zerok-ai/zk-utils-go/storage/badger/config"
 	storage "github.com/zerok-ai/zk-utils-go/storage/redis/config"
 )
 
@@ -24,7 +25,7 @@ type BadgerConfig struct {
 // AppConfigs is an application configuration structure
 type AppConfigs struct {
 	Redis      storage.RedisConfig     `yaml:"redis"`
-	Badger     BadgerConfig            `yaml:"badger"`
+	Badger     badger.BadgerConfig     `yaml:"badger"`
 	Server     ServerConfig            `yaml:"server"`
 	Traces     TraceConfig             `yaml:"traces"`
 	LogsConfig zkLogsConfig.LogsConfig `yaml:"logs"`

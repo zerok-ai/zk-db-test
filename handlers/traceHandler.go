@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	logger "github.com/zerok-ai/zk-utils-go/logs"
-	"github.com/zerok-ai/zk-utils-go/storage/redis/clientDBNames"
+	"github.com/zerok-ai/zk-utils-go/storage/badger"
+	zktick "github.com/zerok-ai/zk-utils-go/ticker"
 	"math/rand"
 	"redis-test/config"
 	"redis-test/model"
@@ -19,95 +20,30 @@ const (
 	logInterval = 1 // Log every 5 seconds
 )
 
-type DBHandler interface {
-	PutTraceData(traceId string, spanId string, spanDetails model.OTelSpanDetails) error
-	SyncPipeline()
-	GarbageCollect()
-	CloseDbConnection() error
-	LogDBRequestsLoad()
-	GetData(id string) (string, error)
-	GetAnyKeyValuePair() (string, string, error)
-	GetTotalDataCount() (string, error)
-	StartCompaction()
-	logDataFromDB()
-}
-
 type TraceHandler struct {
-	traceRedisHandler  DBHandler
-	traceBadgerHandler DBHandler
-
-	traceStoreMutex sync.Mutex
-	traceStore      sync.Map
+	traceBadgerHandler *badger.BadgerStoreHandler
+	traceStoreMutex    sync.Mutex
+	traceStore         sync.Map
 }
 
 func NewTraceHandler(config *config.AppConfigs) (*TraceHandler, error) {
 
-	redisHandler, err := NewRedisHandler(config, clientDBNames.TraceDBName)
-	if err != nil {
-		logger.Error(traceLogTag, "Error while creating redis handler:", err)
-		return nil, err
-	}
-
-	badgerHandler, err := NewBadgerHandler(config, clientDBNames.TraceDBName)
+	traceBadgerHandler, err := badger.NewBadgerHandler(&config.Badger)
 	if err != nil {
 		logger.Error(traceLogTag, "Error while creating badger handler:", err)
 		return nil, err
 	}
 
-	handler := TraceHandler{traceRedisHandler: redisHandler, traceBadgerHandler: badgerHandler}
+	handler := TraceHandler{traceBadgerHandler: traceBadgerHandler}
+
+	//read data from badger for every 5 mins and log the count
+	var readTicker *zktick.TickerTask
+	readTicker = zktick.GetNewTickerTask("badger_log_data_count", config.Badger.GCTimerDuration, func() {
+		LogDataFromDB(traceBadgerHandler)
+	})
+	readTicker.Start()
+
 	return &handler, nil
-}
-
-func (th *TraceHandler) PushDataToRedis(runId string, traceCount, spanCountPerTrace int) {
-
-	for traceIndex := 0; traceIndex < traceCount; traceIndex++ {
-		traceIDStr := fmt.Sprintf("00-aaaa%s", generateRandomHex(28))
-
-		parentSpanId := "0000000000000000"
-		for spanIndex := 0; spanIndex < spanCountPerTrace; spanIndex++ {
-
-			spanDetails := th.createSpanDetails(parentSpanId)
-
-			// Generate a random span ID (16 characters)
-			spanID := generateRandomHex(16)
-
-			err := th.traceRedisHandler.PutTraceData(traceIDStr, spanID, spanDetails)
-			if err != nil {
-				logger.Debug(traceLogTag, "Error while putting trace data to redis ", err)
-				return
-			}
-
-			parentSpanId = spanID
-		}
-	}
-
-	th.traceRedisHandler.SyncPipeline()
-}
-
-func (th *TraceHandler) PushDataToBadger(runId string, traceCount, spanCountPerTrace int) {
-
-	for traceIndex := 0; traceIndex < traceCount; traceIndex++ {
-		traceIDStr := fmt.Sprintf("00-aaaa%s", generateRandomHex(28))
-
-		parentSpanId := "0000000000000000"
-		for spanIndex := 0; spanIndex < spanCountPerTrace; spanIndex++ {
-
-			spanDetails := th.createSpanDetails(parentSpanId)
-
-			// Generate a random span ID (16 characters)
-			spanID := generateRandomHex(16)
-
-			err := th.traceBadgerHandler.PutTraceData(traceIDStr, spanID, spanDetails)
-			if err != nil {
-				logger.Debug(traceLogTag, "Error while putting trace data to redis ", err)
-				return
-			}
-
-			parentSpanId = spanID
-		}
-	}
-
-	th.traceBadgerHandler.SyncPipeline()
 }
 
 // Populate Span common properties.
@@ -191,10 +127,6 @@ func (th *TraceHandler) createSpanDetails(parentSpanId string) model.OTelSpanDet
 	return spanDetail
 }
 
-func (th *TraceHandler) CloseBadgerConnection() error {
-	return th.traceBadgerHandler.CloseDbConnection()
-}
-
 // Function to generate a random hexadecimal string of a given length
 func generateRandomHex(length int) string {
 	rand.Seed(time.Now().UnixNano())
@@ -206,26 +138,29 @@ func generateRandomHex(length int) string {
 	return string(result)
 }
 
-func (th *TraceHandler) LogBadgerDBRequestsLoad() {
-	th.traceBadgerHandler.LogDBRequestsLoad()
-}
-
-func (th *TraceHandler) LogRedisDBRequestsLoad() {
-	th.traceRedisHandler.LogDBRequestsLoad()
-}
-
-func (th *TraceHandler) GetDataFromBadger(id string) (string, error) {
-	return th.traceBadgerHandler.GetData(id)
-}
-
-func (th *TraceHandler) GetRandomKeyValueDataFromBadger() (string, string, error) {
-	return th.traceBadgerHandler.GetAnyKeyValuePair()
-}
-
-func (th *TraceHandler) GetTotalDataCount() (string, error) {
-	return th.traceBadgerHandler.GetTotalDataCount()
-}
-
 func (th *TraceHandler) StartBadgerCompaction() {
 	th.traceBadgerHandler.StartCompaction()
+}
+
+func LogDataFromDB(badger *badger.BadgerStoreHandler) {
+	////logs data from badger for every 5 mins
+	//count, err := GetTotalDataCount(badger)
+	//if err != nil {
+	//	fmt.Printf("Error while getting total data count: %s\n", err)
+	//}
+	//pair, s, err := GetAnyKeyValuePair(badger)
+	//if err != nil {
+	//	fmt.Printf("Error while getting any key value pair: %s\n", err)
+	//}
+	//fmt.Printf("Total data count: %s, badger random key value pair: %s, %s\n", count, pair, s)
+
+	stringArray := []string{""}
+	keyVals, err := badger.BulkGetForPrefix(stringArray)
+	if err != nil {
+		fmt.Printf("Error while getting bulk data: %s\n", err)
+	}
+	for key, value := range keyVals {
+		fmt.Printf("Key: %s, Value: %s\n", key, value)
+	}
+
 }
